@@ -108,12 +108,12 @@ export default class ActorSheetWfrp4eCreature extends ActorSheetWfrp4e {
       expandData.properties.forEach(p => props.append(`<span class="tag">${p}</span>`));
       div.append(props);
       if (expandData.targetEffects.length) {
-        let effectButtons = expandData.targetEffects.map(e => `<a class="apply-effect" data-item-id=${item.id} data-effect-id=${e._id}>${game.i18n.format("SHEET.ApplyEffect", { effect: e.label })}</a>`)
+        let effectButtons = expandData.targetEffects.map(e => `<a class="apply-effect" data-item-id=${item.id} data-effect-id=${e.id}>${game.i18n.format("SHEET.ApplyEffect", { effect: e.label })}</a>`)
         let effects = $(`<div>${effectButtons}</div>`)
         div.append(effects)
       }
       if (expandData.invokeEffects.length) {
-        let effectButtons = expandData.invokeEffects.map(e => `<a class="invoke-effect" data-item-id=${item.id} data-effect-id=${e._id}>${game.i18n.format("SHEET.InvokeEffect", { effect: e.label })}</a>`)
+        let effectButtons = expandData.invokeEffects.map(e => `<a class="invoke-effect" data-item-id=${item.id} data-effect-id=${e.id}>${game.i18n.format("SHEET.InvokeEffect", { effect: e.label })}</a>`)
         let effects = $(`<div>${effectButtons}</div>`)
         div.append(effects)
       }
@@ -167,7 +167,7 @@ export default class ActorSheetWfrp4eCreature extends ActorSheetWfrp4e {
     html.find('.ch-roll').click(this._onCharClick.bind(this))
 
     // Handler for traits in the notes tab - excluding or not excluding them
-    html.find('.trait-name').mousedown(this._onTraitNameClick.bind(this))
+    html.find('.trait-include').mousedown(this._onTraitNameClick.bind(this))
 
   }
 

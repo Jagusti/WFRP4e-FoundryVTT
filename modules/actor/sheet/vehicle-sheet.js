@@ -1,4 +1,3 @@
-
 import ActorSheetWfrp4e from "./actor-sheet.js";
 
 /**
@@ -124,8 +123,9 @@ export default class ActorSheetWfrp4eVehicle extends ActorSheetWfrp4e {
 
 
   _onPassengerClick(ev) {
+    ev.stopPropagation()
     let index = Number($(ev.currentTarget).parents(".item").attr("data-index"))
-    game.actors.get(this.actor.passengers[index].id).sheet.render(true);
+    game.actors.get(this.actor.passengers[index].actor.id).sheet.render(true);
   }
 
   async _onRoleSkillClick(ev) {
@@ -225,7 +225,7 @@ export default class ActorSheetWfrp4eVehicle extends ActorSheetWfrp4e {
     multiplier = ev.ctrlKey ? multiplier * 10 : multiplier;
 
     let index = Number($(ev.currentTarget).parents(".item").attr("data-index"))
-    let passengers = duplicate(this.actor.passengers);
+    let passengers = duplicate(this.actor.data.data.passengers);
     passengers[index].count += 1 * multiplier;
     passengers[index].count = passengers[index].count < 0 ? 0 : passengers[index].count
     this.actor.update({ "data.passengers": passengers });
@@ -233,7 +233,7 @@ export default class ActorSheetWfrp4eVehicle extends ActorSheetWfrp4e {
 
   _onPassengerDeleteClick(ev) {
     let index = Number($(ev.currentTarget).parents(".item").attr("data-index"))
-    let passengers = duplicate(this.actor.passengers);
+    let passengers = duplicate(this.actor.data.data.passengers);
     passengers.splice(index, 1)
     this.actor.update({ "data.passengers": passengers });
   }

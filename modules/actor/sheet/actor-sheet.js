@@ -125,8 +125,9 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     this.filterActiveEffects(sheetData);
     this.addConditionData(sheetData);
 
+    sheetData.attacker = this.actor.attacker;
+
     if (this.actor.type != "vehicle") {
-      //this.addMountData(sheetData);
       sheetData.effects.system = game.wfrp4e.utility.getSystemEffects();
     }
     return sheetData;
@@ -399,11 +400,19 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     for (let loc in AP) {
       if (loc == "shield")
         continue
-      let row = game.wfrp4e.tables[sheetData.data.details.hitLocationTable.value].rows.find(r => r.result == loc)
-      if (row)
-        AP[loc].label = game.i18n.localize(row.description)
-      else
-        AP[loc].show = false;
+      let table = game.wfrp4e.tables.findTable(sheetData.data.details.hitLocationTable.value)
+      if (table)
+      {
+        let result  = table.data.results.find(r => r.getFlag("wfrp4e", "loc") == loc)
+        if (result)
+          AP[loc].label = game.i18n.localize(result.data.text)
+        else
+          AP[loc].show = false;
+      }
+      else if (game.wfrp4e.config.locations[loc]) // fallback implementation
+      {
+        AP[loc].label = game.i18n.localize(game.wfrp4e.config.locations[loc])
+      }
     }
   }
 
@@ -601,6 +610,8 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     html.find('.skill-total, .skill-select').mousedown(this._onSkillClick.bind(this));
     html.find(".tab.inventory .item .item-name").mousedown(this._onItemSplit.bind(this));
     html.find('.skill-advances, .ch-edit').focusin(this._saveFocus.bind(this));
+    html.find(".attacker-remove").click(this._onAttackerRemove.bind(this))
+    html.find(".currency-convert-right").click(this._onConvertCurrencyClick.bind(this))
 
     // Item Dragging
     let handler = this._onDragItemStart.bind(this);
@@ -621,13 +632,16 @@ export default class ActorSheetWfrp4e extends ActorSheet {
       let dragData = JSON.parse(ev.originalEvent.dataTransfer.getData("text/plain"))
       let mount = game.actors.get(dragData.id);
       if (game.wfrp4e.config.actorSizeNums[mount.details.size.value] < game.wfrp4e.config.actorSizeNums[this.actor.details.size.value])
-        return ui.notifications.error("You can only mount creatures of a larger or equal size.")
+        return ui.notifications.error(game.i18n.localize("MountError"))
 
       let mountData = {
         id: dragData.id,
         mounted: true,
         isToken: false
       }
+      if(this.actor.data.token.actorLink && !game.actors.get(dragData.id).data.token.actorLink)
+        ui.notifications.warn(game.i18n.localize("WarnUnlinkedMount"))
+
       this.actor.update({ "data.status.mount": mountData })
     })
 
@@ -1034,14 +1048,14 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     }
     else if (ev.button == 0) {
       try {
-        let rollValue = new Roll(disease.data[type].value).roll().total
+        let rollValue = (await new Roll(disease.data[type].value).roll()).total
         disease.data[type].value = rollValue
         if (type == "duration")
           disease.data.duration.active = true
       }
       catch
       {
-        return ui.notifications.error("Could not parse disease roll")
+        return ui.notifications.error(game.i18n.localize("ERROR.ParseDisease"))
       }
       return this.actor.updateEmbeddedDocuments("Item", [disease])
     }
@@ -1065,7 +1079,7 @@ export default class ActorSheetWfrp4e extends ActorSheet {
       }
       catch
       {
-        return ui.notifications.error("Could not parse injury roll")
+        return ui.notifications.error(game.i18n.localize("ERROR.ParseInjury"))
       }
     }
   }
@@ -1130,14 +1144,14 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     }
     renderTemplate('systems/wfrp4e/templates/dialog/delete-item-dialog.html').then(html => {
       new Dialog({
-        title: "Delete Confirmation", content: html, buttons: {
+        title: game.i18n.localize("Delete Confirmation"), content: html, buttons: {
           Yes: {
-            icon: '<i class="fa fa-check"></i>', label: "Yes", callback: async dlg => {
+            icon: '<i class="fa fa-check"></i>', label: game.i18n.localize("Yes"), callback: async dlg => {
               await this.actor.deleteEmbeddedDocuments("Item", [itemId]);
               this.actor.deleteEffectsFromItem(itemId)
               li.slideUp(200, () => this.render(false))
             }
-          }, cancel: { icon: '<i class="fas fa-times"></i>', label: "Cancel" },
+          }, cancel: { icon: '<i class="fas fa-times"></i>', label: game.i18n.localize("Cancel") },
         }, default: 'Yes'
       }).render(true)
     })
@@ -1168,7 +1182,7 @@ export default class ActorSheetWfrp4e extends ActorSheet {
       let newEqpPoints = item.data.twohanded.value ? 2 : 1
       if (game.settings.get("wfrp4e", "limitEquippedWeapons") && this.actor.type != "vehicle")
         if (this.actor.equipPointsUsed + newEqpPoints > this.actor.equipPointsAvailable && equippedState) {
-          AudioHelper.play({ src: `${game.settings.get("wfrp4e", "soundPath")}no.wav` }, false)
+          AudioHelper.play({ src: `${game.settings.get("wfrp4e", "soundPath")}/no.wav` }, false)
           return ui.notifications.error(game.i18n.localize("ErrorLimitedWeapons"))
         }
       setProperty(item, "data.offhand.value", false)
@@ -1177,7 +1191,7 @@ export default class ActorSheetWfrp4e extends ActorSheet {
       item.data.worn = !item.data.worn;
       equippedState = item.data.worn
     }
-    WFRP_Audio.PlayContextAudio({ item: item, action: "equip", outcome: equippedState })
+    WFRP_Audio.PlayContextAudio({ item: this.actor.items.get(itemId), action: "equip", outcome: equippedState })
     this.actor.updateEmbeddedDocuments("Item", [item])
   }
 
@@ -1189,23 +1203,23 @@ export default class ActorSheetWfrp4e extends ActorSheet {
 
   _onLoadedClick(ev) {
     let itemId = this._getItemId(ev);
-    let item = this.actor.items.get(itemId).toObject()
-    this.actor
-    if (item.data.loaded.repeater) {
-      if (ev.button == 0 && item.data.loaded.amt >= item.data.loaded.max) return
-      if (ev.button == 2 && item.data.loaded.amt <= 0)
+    let item = this.actor.items.get(itemId)
+    let itemObject = item.toObject()
+    if (item.repeater) {
+      if (ev.button == 0 && itemObject.data.loaded.amt >= itemObject.data.loaded.max) return
+      if (ev.button == 2 && itemObject.data.loaded.amt <= 0)
         return
-      if (ev.button == 0) item.data.loaded.amt++
-      if (ev.button == 2) item.data.loaded.amt--;
-      item.data.loaded.value = !!item.data.loaded.amt
+      if (ev.button == 0) itemObject.data.loaded.amt++
+      if (ev.button == 2) itemObject.data.loaded.amt--;
+      itemObject.data.loaded.value = !!itemObject.data.loaded.amt
     }
     else {
-      item.data.loaded.value = !item.data.loaded.value
-      if (item.data.loaded.value)
-        item.data.loaded.amt = item.data.loaded.max || 1
-      else item.data.loaded.amt = 0
+      itemObject.data.loaded.value = !itemObject.data.loaded.value
+      if (itemObject.data.loaded.value)
+        itemObject.data.loaded.amt = itemObject.data.loaded.max || 1
+      else itemObject.data.loaded.amt = 0
     }
-    this.actor.updateEmbeddedDocuments("Item", [item]).then(i => this.actor.checkReloadExtendedTest(this.actor.items.get(itemId)))
+    this.actor.updateEmbeddedDocuments("Item", [itemObject]).then(i => this.actor.checkReloadExtendedTest(item))
   }
 
   _onRepeaterClick(ev) {
@@ -1263,7 +1277,7 @@ export default class ActorSheetWfrp4e extends ActorSheet {
       new Dialog({
         title: game.i18n.localize("SHEET.SplitTitle"), content: `<p>${game.i18n.localize("SHEET.SplitPrompt")}</p><div class="form-group"><input name="split-amt"type="text"/></div>`, buttons: {
           split: {
-            label: "Split", callback: (dlg) => {
+            label: game.i18n.localize("Split"), callback: (dlg) => {
               let amt = Number(dlg.find('[name="split-amt"]').val());
               if (Number.isNumeric(amt))
                 return this.splitItem(this._getItemId(ev), amt)
@@ -1313,21 +1327,21 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     if (this.actor.type == "character")
       return
     try {
-      let initialValues = WFRP_Utility.speciesCharacteristics(speciesKey, true, subspeciesKey);
+      let initialValues = await WFRP_Utility.speciesCharacteristics(speciesKey, true, subspeciesKey);
       let characteristics = this.actor.toObject().data.characteristics;
       for (let c in characteristics) {
         characteristics[c].initial = initialValues[c].value
       }
 
       new Dialog({
-        content: "<p>Do you want to apply this species's characteristics to the actor?", title: "Species Characteristics", buttons: {
+        content: game.i18n.localize("SpecChar"), title: game.i18n.localize("Species Characteristics"), buttons: {
           yes: {
-            label: "Yes", callback: async () => {
+            label: game.i18n.localize("Yes"), callback: async () => {
               await this.actor.update({ 'data.characteristics': characteristics })
 
               await this.actor.update({ "data.details.move.value": WFRP_Utility.speciesMovement(species) || 4 })
             }
-          }, no: { label: "No", callback: () => { } }
+          }, no: { label: game.i18n.localize("No"), callback: () => { } }
         }
       }).render(true)
     } catch{ }
@@ -1339,17 +1353,17 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     let subspecies = this.actor.details.species.subspecies;
     try {
       switch (ev.target.text) {
-        case "C": let creatureMethod = false;
+        case game.i18n.localize("RANDOMIZER.C"): let creatureMethod = false;
           let characteristics = this.actor.toObject().data.characteristics;
           if (this.actor.type == "creature" || !species) creatureMethod = true;
           if (!creatureMethod) {
-            let averageCharacteristics = WFRP_Utility.speciesCharacteristics(species, true, subspecies);
+            let averageCharacteristics = await WFRP_Utility.speciesCharacteristics(species, true, subspecies);
             for (let char in characteristics) {
               if (characteristics[char].initial != averageCharacteristics[char].value) creatureMethod = true
             }
           }
           if (!creatureMethod) {
-            let rolledCharacteristics = WFRP_Utility.speciesCharacteristics(species, false, subspecies);
+            let rolledCharacteristics = await WFRP_Utility.speciesCharacteristics(species, false, subspecies);
             for (let char in rolledCharacteristics) {
               characteristics[char].initial = rolledCharacteristics[char].value
             }
@@ -1357,13 +1371,13 @@ export default class ActorSheetWfrp4e extends ActorSheet {
           }
           else if (creatureMethod) {
             let roll = new Roll("2d10");
-            roll.roll();
+            await roll.roll();
             let characteristics = this.actor.toObject().data.characteristics;
             for (let char in characteristics) {
               if (characteristics[char].initial == 0)
                 continue
               characteristics[char].initial -= 10;
-              characteristics[char].initial += roll.reroll().total;
+              characteristics[char].initial += (await roll.reroll()).total;
               if (characteristics[char].initial < 0)
                 characteristics[char].initial = 0
             }
@@ -1371,10 +1385,10 @@ export default class ActorSheetWfrp4e extends ActorSheet {
           }
           return
 
-        case "S":
+        case game.i18n.localize("RANDOMIZER.S"):
           this.actor._advanceSpeciesSkills()
           return
-        case "T":
+        case game.i18n.localize("RANDOMIZER.T"):
           this.actor._advanceSpeciesTalents()
           return
       }
@@ -1431,6 +1445,11 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     let mountData = { id: "", mounted: false, isToken: false }
     this.actor.update({ "data.status.mount": mountData })
   }
+
+  _onAttackerRemove(ev) {
+    this.actor.update({ "flags.-=oppose": null })
+  }
+
   _onMountClicked(ev) {
     this.actor.mount.sheet.render(true)
   }
@@ -1460,11 +1479,11 @@ export default class ActorSheetWfrp4e extends ActorSheet {
       data = duplicate(header.dataset);
 
     if (data.type == "effect")
-      return this.actor.createEmbeddedDocuments("ActiveEffect", [{ name: "New Effect" }])
+      return this.actor.createEmbeddedDocuments("ActiveEffect", [{ name: game.i18n.localize("New Effect") }])
 
     if (data.type == "vehicle-role" && this.actor.type == "vehicle") {
       let roles = duplicate(this.actor.roles)
-      let newRole = { name: "New Role", actor: "", test: "", testLabel: "" }
+      let newRole = { name: game.i18n.localize("NewRole"), actor: "", test: "", testLabel: "" }
       roles.push(newRole)
       return this.actor.update({ "data.roles": roles })
     }
@@ -1509,13 +1528,13 @@ export default class ActorSheetWfrp4e extends ActorSheet {
       }
     }
     data["img"] = "systems/wfrp4e/icons/blank.png";
-    data["name"] = `New ${data.type.capitalize()}`;
+    data["name"] = `${game.i18n.localize("New")} ${data.type.capitalize()}`;
     this.actor.createEmbeddedDocuments("Item", [data]);
   }
 
   _onEffectCreate(ev) {
     let type = ev.currentTarget.attributes["data-effect"].value
-    let effectData = { label: "New Effect" }
+    let effectData = { label: game.i18n.localize("New Effect") }
     if (type == "temporary") {
       effectData["duration.rounds"] = 1;
     }
@@ -1734,6 +1753,43 @@ export default class ActorSheetWfrp4e extends ActorSheet {
 
     this.actor.updateEmbeddedDocuments("Item", money);
   }
+
+  _onConvertCurrencyClick(ev) {
+    let type = ev.currentTarget.dataset.type
+    let money = this.actor.getItemTypes("money").map(m => m.toObject());
+
+    if (type == "gc")
+    {
+      let currentGC = money.find(i => i.name == game.i18n.localize("NAME.GC"))
+      let currentSS = money.find(i => i.name == game.i18n.localize("NAME.SS"))
+
+      if (currentGC && currentSS && currentGC.data.quantity.value )
+      {
+        currentGC.data.quantity.value -= 1;
+        currentSS.data.quantity.value += 20
+        return this.actor.updateEmbeddedDocuments("Item", [currentGC, currentSS])
+      }
+      else
+        return ui.notifications.error(game.i18n.localize("ErrorMoneyConvert"))
+    }
+    
+    if (type == "ss")
+    {
+      let currentSS = money.find(i => i.name == game.i18n.localize("NAME.SS"))
+      let currentBP = money.find(i => i.name == game.i18n.localize("NAME.BP"))
+
+      if (currentBP && currentSS  && currentSS.data.quantity.value)
+      {
+        currentSS.data.quantity.value -= 1;
+        currentBP.data.quantity.value += 12
+        return this.actor.updateEmbeddedDocuments("Item", [currentBP, currentSS])
+      }
+      else
+        return ui.notifications.error(game.i18n.localize("ErrorMoneyConvert"))
+    }
+
+  }
+
   //#endregion
 
   //#region DROPDOWNS
@@ -1775,12 +1831,12 @@ export default class ActorSheetWfrp4e extends ActorSheet {
 
 
       if (expandData.targetEffects.length) {
-        let effectButtons = expandData.targetEffects.map(e => `<a class="apply-effect" data-item-id=${item.id} data-effect-id=${e._id}>${game.i18n.format("SHEET.ApplyEffect", { effect: e.label })}</a>`)
+        let effectButtons = expandData.targetEffects.map(e => `<a class="apply-effect" data-item-id=${item.id} data-effect-id=${e.id}>${game.i18n.format("SHEET.ApplyEffect", { effect: e.label })}</a>`)
         let effects = $(`<div>${effectButtons}</div>`)
         div.append(effects)
       }
       if (expandData.invokeEffects.length) {
-        let effectButtons = expandData.invokeEffects.map(e => `<a class="invoke-effect" data-item-id=${item.id} data-effect-id=${e._id}>${game.i18n.format("SHEET.InvokeEffect", { effect: e.label })}</a>`)
+        let effectButtons = expandData.invokeEffects.map(e => `<a class="invoke-effect" data-item-id=${item.id} data-effect-id=${e.id}>${game.i18n.format("SHEET.InvokeEffect", { effect: e.label })}</a>`)
         let effects = $(`<div>${effectButtons}</div>`)
         div.append(effects)
       }
@@ -1931,22 +1987,22 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     if (classes.hasClass("weapon-range")) {
       if (!game.settings.get("wfrp4e", "mooRangeBands"))
       expansionText =
-        `<a class="range-click" data-range="${item.range.bands["Point Blank"].modifier}">${item.range.bands["Point Blank"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Point Blank"].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Point Blank"]]}</a><br>
-          <a class="range-click" data-range="${item.range.bands["Short Range"].modifier}">${item.range.bands["Short Range"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Short Range"].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Short Range"]]}</a><br>
-          <a class="range-click" data-range="${item.range.bands["Normal"].modifier}">${item.range.bands["Normal"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Normal"].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Normal"]]}</a><br>
-          <a class="range-click" data-range="${item.range.bands["Long Range"].modifier}">${item.range.bands["Long Range"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Long Range"].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Long Range"]]}</a><br>
-          <a class="range-click" data-range="${item.range.bands["Extreme"].modifier}">${item.range.bands["Extreme"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Extreme"].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Extreme"]]}</a><br>
+        `<a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Point Blank")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Point Blank")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Point Blank")}"`].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Point Blank"]]}</a><br>
+          <a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Short Range")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Short Range")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Short Range")}"`].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Short Range"]]}</a><br>
+          <a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Normal")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Normal")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Normal")}"`].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Normal"]]}</a><br>
+          <a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Long Range")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Long Range")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Long Range")}"`].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Long Range"]]}</a><br>
+          <a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Extreme")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Extreme")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Extreme")}"`].range[1]} ${game.i18n.localize("yds")}: ${game.wfrp4e.config.difficultyLabels[game.wfrp4e.config.rangeModifiers["Extreme"]]}</a><br>
           `
 
       //@HOUSE
       else {
         game.wfrp4e.utility.logHomebrew("mooRangeBands")
         expansionText =
-        `<a class="range-click" data-range="${item.range.bands["Point Blank"].modifier}">${item.range.bands["Point Blank"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Point Blank"].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands["Point Blank"].modifier}</a><br>
-          <a class="range-click" data-range="${item.range.bands["Short Range"].modifier}">${item.range.bands["Short Range"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Short Range"].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands["Short Range"].modifier}</a><br>
-          <a class="range-click" data-range="${item.range.bands["Normal"].modifier}">${item.range.bands["Normal"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Normal"].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands["Normal"].modifier}</a><br>
-          <a class="range-click" data-range="${item.range.bands["Long Range"].modifier}">${item.range.bands["Long Range"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Long Range"].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands["Long Range"].modifier}</a><br>
-          <a class="range-click" data-range="${item.range.bands["Extreme"].modifier}">${item.range.bands["Extreme"].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands["Extreme"].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands["Extreme"].modifier}</a><br>
+        `<a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Point Blank")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Point Blank")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Point Blank")}"`].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands[`"${game.i18n.localize("Point Blank")}"`].modifier}</a><br>
+          <a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Short Range")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Short Range")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Short Range")}"`].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands[`"${game.i18n.localize("Short Range")}"`].modifier}</a><br>
+          <a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Normal")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Normal")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Normal")}"`].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands[`"${game.i18n.localize("Normal")}"`].modifier}</a><br>
+          <a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Long Range")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Long Range")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Long Range")}"`].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands[`"${game.i18n.localize("Long Range")}"`].modifier}</a><br>
+          <a class="range-click" data-range="${item.range.bands[`"${game.i18n.localize("Extreme")}"`].modifier}">${item.range.bands[`"${game.i18n.localize("Extreme")}"`].range[0]} ${game.i18n.localize("yds")} - ${item.range.bands[`"${game.i18n.localize("Extreme")}"`].range[1]} ${game.i18n.localize("yds")}: ${item.range.bands[`"${game.i18n.localize("Extreme")}"`].modifier}</a><br>
           `
       }
       //@/HOUSE
@@ -2008,7 +2064,7 @@ export default class ActorSheetWfrp4e extends ActorSheet {
     let item = this.actor.items.get(itemId).toObject()
     let newItem = duplicate(item)
     if (amount >= item.data.quantity.value)
-      return ui.notifications.notify("Invalid Quantity")
+      return ui.notifications.notify(game.i18n.localize("Invalid Quantity"))
 
     newItem.data.quantity.value = amount;
     item.data.quantity.value -= amount;

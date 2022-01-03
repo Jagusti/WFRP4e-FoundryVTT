@@ -15,11 +15,6 @@ export default function() {
       
     }
 
-    if (app.options.id == "tables-popout")
-    {
-      game.wfrp4e.utility.addTablesToSidebar(html)
-    }
-
     if (app.options.id == "actors")
     {
       let button = $(`<button class='character-creation'>${game.i18n.localize("BUTTON.CharacterCreation")}</button>`)
@@ -33,7 +28,7 @@ export default function() {
               label : game.i18n.localize("Yes"),
               callback : dlg => {
                 ui.sidebar.activateTab("chat")
-                CONFIG.Actor.entityClass.create({type : "character", name : "New Character"}, {renderSheet: true} )
+                CONFIG.Actor.documentClass.create({type : "character", name : "New Character"}, {renderSheet: true} )
                 GeneratorWfrp4e.start()
                 game.wfrp4e.generator.speciesStage();
               }

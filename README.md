@@ -1,22 +1,15 @@
-# Warhammer Fantasy Role-Play 4th Ed. (FoundryVTT)
+# Warhammer Fantasy Roleplay 4th Ed. (FoundryVTT)
 
 ![](https://user-images.githubusercontent.com/28637157/97379891-e4a1cc00-1893-11eb-9e0c-d93b92844d5b.jpg)
-**[Current Version]**: `4.2.1`
+**[Current Version]**: `5.0.4`
 
-**[Compatibility]**: `FoundryVTT 0.8.4 - 0.8.9`
+**[Compatibility]**: `FoundryVTT V9`
 
 This system is intended for use with [Foundry Virtual Tabletop](http://foundryvtt.com/) to play in the grim and perilous world of Warhammer.
 
 ## Installation - Auto Installer (Recommended)
 
-1. In the FVTT Game Systems Menu, click `Install System`
-2. Enter into Manifest URL: `https://raw.githubusercontent.com/moo-man/WFRP4e-FoundryVTT/master/system.json`
-
-## Installation - Manual
-
-1. Place the unzipped folder in your `Data/systems` folder
-2. Make sure the folder is named `wfrp4e`
-3. Launch FoundryVTT and create your new world, selecting the Warhammer system.
+You can install the system from the Foundry system installer, simply search for Warhammer Fantasy and it should show in the results.
 
 ## Current State
 
@@ -26,7 +19,10 @@ This system is intended for use with [Foundry Virtual Tabletop](http://foundryvt
 
 **Version 3.0** brought back warhammer better than ever, the official modules provided by me working with Cubicle 7 brings the Warhammer system to the forefront of the possibilites of gaming in Foundry VTT and the seamlessness of official content to make the GM's life easier. See below for more details on official modules.
 
-**Version 4.0**, the current version, is the best Warhammer has ever been, with extensive refactoring done for cleaner code.
+**Version 4.0**, Foundry 0.8.x compatible, major refactoring for cleaner code to take advantage of the Document refactor.
+
+**Version 5.0**, the current version, compatible with Foundry V9
+
 
 Please feel free to message me on Discord - Moo Man#7518
 
@@ -91,12 +87,16 @@ I also wanted to thank the following for the help in continuing to improve the s
 
 - [Middenheim: City of the White Wolf](https://foundryvtt.com/packages/wfrp4e-middenheim/) - Dive into the centre of Ulrican influence and power in the Old World and explore Middenheim, the heart of the Empire's North.
 
+- [Archives of the Empire: Vol 1.](https://foundryvtt.com/packages/wfrp4e-archives1/) - A fascinating and diverse collection of articles on topics that cover the length and breath of the Old World.
+
+- [Power Behind the Throne](https://foundryvtt.com/packages/wfrp4e-pbtt/) - carrying on from where Death of the Reik left off, Power Behind the Throne takes your brave heroes from Altdorf to the city of Middenheim, a towering city-state in the north of the Empire where trouble brews and a play for power is made.
+
 
 **Unofficial**
 
 - [Arcane Marks & Careers](https://foundryvtt.com/packages/arcane-marks-careers) - I've made a module out of my [homebrew supplement](https://drive.google.com/file/d/1uTy2r0EDMdcISFqqyxeIOSadtzz-OTAg/view) which can also serve as an example for others to build off of. It includes a compendium pack of all the careers as well as tables to roll for marks. 
 
-- [The GM Tool Kit](https://foundryvtt.com/packages/wfrp4e-gm-toolkit) - Extends to the Token HUD for more information and adds useful macros!
+- [The GM Toolkit](https://foundryvtt.com/packages/wfrp4e-gm-toolkit) - Adds advantage automation, extends the Token HUD for more information, and adds useful macros!
 
 - [Character Detail Generator](https://foundryvtt.com/packages/wfrp4e-character-details) - Adds a generator that details birthday, birthplace, family info, and star sign.
 
@@ -106,20 +106,8 @@ I also wanted to thank the following for the help in continuing to improve the s
 
 - [Unofficial Grimoire](https://foundryvtt.com/packages/wfrp4e-unofficial-grimoire) - Adds new spells and an Elementalist and Druid career
 
-- [Vampires Sourcebook](https://foundryvtt.com/packages/wfrp4e-vampires) - New talents, careers, automated transformations, mutations, and lore concerning Vampires!
-
 - [Character Detail Generator](https://foundryvtt.com/packages/wfrp4e-character-details) - Generates additional information for characters, including birth date and star sign.
 
 - Fan-made Maps for [Ubersreik](https://foundryvtt.com/packages/wfrp4e-ubersreik-maps), [Enemy In Shadows](https://foundryvtt.com/packages/wfrp4e-eis-maps), [Death on the Reik](https://foundryvtt.com/packages/wfrp4e-dotr-maps), and [Power Behind The Throne](https://foundryvtt.com/packages/wfrp4e-pbth-maps)
-
-- [Nations of Mankind](https://foundryvtt.com/packages/nations-of-mankind-wfrp4e) - It adds several new origins for humans from all across the old world, as well as new careers & talents.
-
-- [The Dwarf Empire](https://foundryvtt.com/packages/the-dwarf-empire-wfrp4e) - Adds 5 new careers, more weapons, armour, and a dwarf themed bestiary!
-
-- [Ogre Kingdom](https://foundryvtt.com/packages/ogre-kingdom-wfrp4e) - Adds ogre careers, character generation, spells, trappings, and bestiary
-
-- [Vampires Sourcebook](https://foundryvtt.com/packages/wfrp4e-vampires) - adds vampiric talents, careers, automated transformations, and mutation tables for vampire oriented compaigns
-
-- [Law's Pet Shoppe](https://foundryvtt.com/packages/wfrp4e-laws-pet-shoppe) - Adds various variants for animals such as dogs, horses, cats, and rules to generate them
 
 

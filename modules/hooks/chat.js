@@ -93,7 +93,12 @@ export default function() {
     if (command === "/table") {
       // If no argument, display help menu
       if (commands.length === 1)
-        msg.content = game.wfrp4e.tables.formatChatRoll("menu");
+      {
+        game.wfrp4e.tables.formatChatRoll("menu").then(text => {
+          msg.content = text
+          ChatMessage.create(msg)
+        })
+      }
       else {
         // [0]: /table [1]: <table-name> [2]: argument1 [3]: argument2
         let modifier, column; // Possible arguments
@@ -107,11 +112,11 @@ export default function() {
             column = commands[2]
         }
         // Call tables class to roll and return html
-        msg.content = game.wfrp4e.tables.formatChatRoll(commands[1], { modifier: modifier }, column)
+        game.wfrp4e.tables.formatChatRoll(commands[1], { modifier: modifier }, column).then(text => {
+          msg.content = text
+          ChatMessage.create(msg);
+        })
       }
-      // Create message and return false to not display user input of `/table`
-      if (msg)
-        ChatMessage.create(msg);
       return false;
     }
     // Lookup a condition
@@ -262,7 +267,7 @@ export default function() {
     // If message has the opposed class signifying an opposed result
     if ($(msg.data.content).find(".opposed-card").length && msg.data.flags.startMessageId && (game.user.isUniqueGM)) {
       // Look in the flags for the winner and startMessage
-      let winner = msg.data.flags.opposeData.winner;
+      let winner = msg.data.flags.opposeData.opposeResult.winner;
       let startMessage = game.messages.get(msg.data.flags.startMessageId)
       // The loser is "attacker" or "defender"
       let loser = winner == "attacker" ? "defender" : "attacker"

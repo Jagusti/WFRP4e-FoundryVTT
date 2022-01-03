@@ -67,7 +67,7 @@ export default class WFRP_Utility {
         collection = document.collection
 
       if (collection.has(id)) {
-        ui.notifications.notify(`ID for ${document.name} already exists in collection. This Document has been given a unique ID.`)
+        ui.notifications.notify(`${game.i18n.format("ERROR.ID", {name: document.name})}`)
         return false
       }
       else return true
@@ -118,14 +118,14 @@ export default class WFRP_Utility {
    * @param {string} species      Key or value for species in config
    * @param {bool} average        Take average or not
    */
-  static speciesCharacteristics(species, average, subspecies) {
+  static async  speciesCharacteristics(species, average, subspecies) {
     let characteristics = {};
     let characteristicFormulae = game.wfrp4e.config.speciesCharacteristics[species];
     if (subspecies && game.wfrp4e.config.subspecies[species][subspecies].characteristics)
       characteristicFormulae = game.wfrp4e.config.subspecies[species][subspecies].characteristics
 
     if (!characteristicFormulae) {
-      ui.notifications.info("Could not find species " + species)
+      ui.notifications.info(`${game.i18n.format("ERROR.Species", { name: species })}`)
       console.log("wfrp4e | Could not find species " + species + ": " + error);
       throw error
     }
@@ -137,7 +137,7 @@ export default class WFRP_Utility {
         characteristics[char] = { value: parseInt(characteristicFormulae[char].split("+")[1]) + 10, formula: characteristicFormulae[char] }
       }
       else {
-        let roll = new Roll(characteristicFormulae[char]).roll()
+        let roll = await new Roll(characteristicFormulae[char]).roll()
         characteristics[char] = { value: roll.total, formula: characteristicFormulae[char] + ` (${roll.result})` }
       }
     }
@@ -250,7 +250,7 @@ export default class WFRP_Utility {
         return dbSkill;
       }
     }
-    throw "Could not find skill (or specialization of) " + skillName + " in compendum or world"
+    throw `"${game.i18n.format("ERROR.NoSkill", {skill: skillName})}"`
 
   }
 
@@ -291,7 +291,7 @@ export default class WFRP_Utility {
         return dbTalent;
       }
     }
-    throw "Could not find talent (or specialization of) " + talentName + " in compendium or world"
+    throw `"${game.i18n.format("ERROR.NoTalent", {talent: talentName})}"`
   }
 
 
@@ -419,7 +419,7 @@ export default class WFRP_Utility {
     ChatMessage.create(chatOptions);
 
     if (game.user.isGM) {
-      content = `<b>${symptom} Treatment</b>: ${game.wfrp4e.config.symptomTreatment[symkey]}`;
+      content = `<b>${symptom} ${game.i18n.localize("Treatment")}</b>: ${game.wfrp4e.config.symptomTreatment[symkey]}`;
       chatOptions = {
         user: game.user.id,
         rollMode: game.settings.get("core", "rollMode"),
@@ -554,7 +554,7 @@ export default class WFRP_Utility {
     const packs = game.wfrp4e.tags.getPacksWithTag(["money", "skill"])
 
     if (!packs.length)
-      return ui.notifications.error("No content found")
+      return ui.notifications.error(game.i18n.localize("ERROR.Found"))
 
     for (let pack of packs) {
       let items
@@ -584,7 +584,7 @@ export default class WFRP_Utility {
     const packs = game.wfrp4e.tags.getPacksWithTag("money")
 
     if (!packs.length)
-      return ui.notifications.error("No content found")
+      return ui.notifications.error(game.i18n.localize("ERROR.Found"))
 
     for (let pack of packs) {
       let items
@@ -623,11 +623,11 @@ export default class WFRP_Utility {
       case "Roll":
         return `<a class="chat-roll" data-roll="${ids[0]}"><i class='fas fa-dice'></i> ${name ? name : id}</a>`
       case "Table":
-        return `<a class = "table-click" data-table="${ids[0]}"><i class="fas fa-list"></i> ${(game.wfrp4e.tables[id] && !name) ? game.wfrp4e.tables[id].name : name}</a>`
+        return `<a class = "table-click" data-table="${ids[0]}"><i class="fas fa-list"></i> ${(game.wfrp4e.tables.findTable(id)?.name && !name) ? game.wfrp4e.tables.findTable(id)?.name : name}</a>`
       case "Symptom":
         return `<a class = "symptom-tag" data-symptom="${ids[0]}"><i class='fas fa-user-injured'></i> ${name ? name : id}</a>`
       case "Condition":
-        return `<a class = "condition-chat" data-cond="${this.findKey(ids[0], game.wfrp4e.config.conditions)}"><i class='fas fa-user-injured'></i> ${((game.wfrp4e.config.conditions[id] && !name) ? game.wfrp4e.config.conditions[id] : id)}</a>`
+        return `<a class = "condition-chat" data-cond="${ids[0]}"><i class='fas fa-user-injured'></i> ${name ? name : id}</a>`
       case "Pay":
         return `<a class = "pay-link" data-pay="${ids[0]}"><i class="fas fa-coins"></i> ${name ? name : id}</a>`
       case "Credit":
@@ -648,7 +648,7 @@ export default class WFRP_Utility {
    * 
    * @param {Object} event  click event
    */
-  static handleTableClick(event) {
+  static async handleTableClick(event) {
     let modifier = parseInt($(event.currentTarget).attr("data-modifier")) || 0;
     let html;
     let chatOptions = this.chatDataSetup("", game.settings.get("core", "rollMode"), true)
@@ -668,7 +668,7 @@ export default class WFRP_Utility {
         html = game.i18n.format("ROLL.Misfire", { damage: damage });
       }
       else
-        html = game.wfrp4e.tables.formatChatRoll($(event.currentTarget).attr("data-table"),
+        html = await game.wfrp4e.tables.formatChatRoll($(event.currentTarget).attr("data-table"),
           {
             modifier: modifier
           }, $(event.currentTarget).attr("data-column"));
@@ -679,12 +679,12 @@ export default class WFRP_Utility {
 
     }
 
-    // If right click, open table modifier menu
-    else if (event.button == 2) {
-      {
-        new game.wfrp4e.apps.Wfrp4eTableSheet($(event.currentTarget).attr("data-table")).render(true)
-      }
-    }
+    // // If right click, open table modifier menu
+    // else if (event.button == 2) {
+    //   {
+    //     new game.wfrp4e.apps.Wfrp4eTableSheet($(event.currentTarget).attr("data-table")).render(true)
+    //   }
+    // }
   }
 
   /**
@@ -696,7 +696,8 @@ export default class WFRP_Utility {
     let cond = $(event.currentTarget).attr("data-cond")
     if (!cond)
       cond = event.target.text.trim();
-    cond = cond.split(" ")[0]
+    if (!isNaN(cond.split(" ").pop())) // check if the condition level is specified
+      cond = cond.split(" ").slice(0, -1).join(" ") // remove the condition level
     let condkey = WFRP_Utility.findKey(cond, game.wfrp4e.config.conditions, { caseInsensitive: true });
     let condName = game.wfrp4e.config.conditions[condkey];
     let condDescr = game.wfrp4e.config.conditionDescriptions[condkey];
@@ -723,12 +724,12 @@ export default class WFRP_Utility {
    * 
    * @param {Object} event clicke event
    */
-  static handleRollClick(event) {
+  static async handleRollClick(event) {
     let roll = $(event.currentTarget).attr("data-roll")
     if (!roll)
       roll = event.target.text.trim();
     let rollMode = game.settings.get("core", "rollMode");
-    new Roll(roll).roll().toMessage(
+    (await new Roll(roll).roll()).toMessage(
       {
         user: game.user.id,
         rollMode
@@ -807,7 +808,7 @@ export default class WFRP_Utility {
 
   static postExp(amount, reason = undefined) {
     if (isNaN(amount))
-      return ui.notifications.error("Experience values must be numeric.")
+      return ui.notifications.error(game.i18n.localize("ERROR.Experience"))
 
     let title = `${game.i18n.localize("CHAT.Experience")}`
 
@@ -828,7 +829,7 @@ export default class WFRP_Utility {
 
   static applyEffectToTarget(effect, targets) {
     if (!targets && !game.user.targets.size)
-      return ui.notifications.warn("Select a target to apply the effect.")
+      return ui.notifications.warn(game.i18n.localize("WARNING.Target"))
 
     if (!targets)
       targets = game.user.targets;
@@ -836,7 +837,7 @@ export default class WFRP_Utility {
     if (game.user.isGM) {
       setProperty(effect, "flags.wfrp4e.effectApplication", "")
       setProperty(effect, "flags.core.statusId", effect.label.toLowerCase())
-      let msg = `${effect.label} applied to `
+      let msg = `${game.i18n.format("EFFECT.Applied", {name: effect.label})} `
       let actors = [];
 
       if (effect.flags.wfrp4e.effectTrigger == "oneTime") {
@@ -855,7 +856,7 @@ export default class WFRP_Utility {
       ui.notifications.notify(msg)
     }
     else {
-      ui.notifications.notify("Apply Effect request sent to GM")
+      ui.notifications.notify(game.i18n.localize("APPLYREQUESTGM"))
       game.socket.emit("system.wfrp4e", { type: "applyEffects", payload: { effect, targets: [...targets].map(t => t.document.toObject()), scene: canvas.scene.id } })
     }
     game.user.updateTokenTargets([]);
@@ -866,8 +867,8 @@ export default class WFRP_Utility {
     if (game.user.isGM) {
       if (actor.hasPlayerOwner) {
         for (let u of game.users.contents.filter(u => u.active && !u.isGM)) {
-          if (actor.data.permission.default >= CONST.ENTITY_PERMISSIONS.OWNER || actor.data.permission[u.id] >= CONST.ENTITY_PERMISSIONS.OWNER) {
-            ui.notifications.notify("Apply Effect command sent to owner")
+          if (actor.data.permission.default >= CONST.DOCUMENT_PERMISSION_LEVELS.OWNER || actor.data.permission[u.id] >= CONST.DOCUMENT_PERMISSION_LEVELS.OWNER) {
+            ui.notifications.notify(game.i18n.localize("APPLYREQUESTOWNER"))
             game.socket.emit("system.wfrp4e", { type: "applyOneTimeEffect", payload: { userId: u.id, effect: effect.toObject(), actorData: actor.toObject() } })
             return
           }
@@ -886,7 +887,7 @@ export default class WFRP_Utility {
 
     let asyncFunction = Object.getPrototypeOf(async function () { }).constructor
     let func = new asyncFunction("args", getProperty(effect, "flags.wfrp4e.script")).bind({ actor, effect, item })
-    func()
+    func({actor, effect, item})
   }
 
   /**
@@ -942,32 +943,7 @@ export default class WFRP_Utility {
     await canvas.scene.setFlag("wfrp4e", "morrslieb", morrsliebActive)
 
     if (game.modules.get("fxmaster") && game.modules.get("fxmaster").active) {
-      let filters = canvas.scene.getFlag('fxmaster', 'filters')
-      if (!filters) filters = {};
-      if (morrsliebActive) {
-        filters["morrslieb"] = {
-          type: "color",
-          options: {
-            red: CONFIG.Morrslieb.red,
-            green: CONFIG.Morrslieb.green,
-            blue: CONFIG.Morrslieb.blue
-          }
-        }
-      }
-      else {
-        filters["morrslieb"] = {
-          type: "color",
-          options: {
-            red: 1,
-            green: 1,
-            blue: 1
-          }
-        }
-      }
-      canvas.scene.setFlag('fxmaster', 'filters', null).then(() => {
-        canvas.scene.setFlag('fxmaster', 'filters', filters);
-      })
-
+      return ui.notifications.warn("Morrslieb effect and FXMaster conflict. You must create a green effect via FXMaster manually.")
     }
     else {
       game.socket.emit("system.wfrp4e", {
@@ -998,13 +974,88 @@ export default class WFRP_Utility {
 
     for (let result of table.results) {
       wfrpTable.rows.push({
-        description: result.text,
-        range: result.range
+        description: result.data.text,
+        range: result.data.range
       })
     }
     let file = new File([JSON.stringify(wfrpTable)], wfrpTable.name.slugify() + ".json")
 
-    FilePicker.upload("data", `worlds/${game.world.name}/tables`, file)
+    FilePicker.upload("data", `worlds/${game.world.data.name}/tables`, file)
+  }
+
+  static async convertWFRPTable(tableId) {
+    let table = game.wfrp4e.tables[tableId]
+    let rollTable
+    if (table.columns || table.multi)
+    {
+      rollTable = []
+      if (table.multi)
+      {
+        for (let column of table.multi)
+        {
+          let rollTableColumn = new CONFIG.RollTable.documentClass({name : table.name + " - " + column}).toObject()
+          rollTableColumn["flags.wfrp4e.key"] = tableId
+          rollTableColumn["flags.wfrp4e.column"] = column
+          rollTableColumn.formula = table.die || "1d100"
+
+          rollTableColumn.results = table.rows.map(i => {
+            let row = duplicate(i[column])
+            row.range = i.range[column]
+            if (row.range.length == 1)
+              row.range.push(row.range[0])
+            return this._convertTableRow(row)
+          })
+          rollTableColumn.results = rollTableColumn.results.filter(i => i.range.length)
+          rollTable.push(rollTableColumn)
+        }
+      }
+      if (table.columns)
+      {
+        for (let column of table.columns)
+        {
+          let rollTableColumn = new CONFIG.RollTable.documentClass({name : table.name + " - " + column}).toObject()
+          rollTableColumn["flags.wfrp4e.key"] = tableId
+          rollTableColumn["flags.wfrp4e.column"] = column
+          rollTableColumn.formula = table.die || "1d100"
+          rollTableColumn.results = table.rows.map(i => {
+            let row = duplicate(i)
+            row.range = row.range[column]
+            if (row.range.length == 1)
+              row.range.push(row.range[0])
+            return this._convertTableRow(row)
+          })
+          rollTableColumn.results = rollTableColumn.results.filter(i => i.range.length)
+          rollTable.push(rollTableColumn)
+        }
+      }
+    }
+    else 
+    {
+      rollTable = new CONFIG.RollTable.documentClass({name : table.name}).toObject()
+      rollTable["flags.wfrp4e.key"] = tableId
+      rollTable.formula = table.die || "1d100"
+      rollTable.results = table.rows.map(i => this._convertTableRow(i))
+    }
+    return RollTable.create(rollTable)
+  }
+
+  static _convertTableRow(row)
+  {
+    let newRow = new TableResult().toObject()
+    newRow.range = row.range
+    let text = ``
+    if (row.name && row.description)
+    {
+      text += `<b>${row.name}</b>: `
+      text += row.description
+    }
+    else if (row.name)
+      text += row.name
+    else if (row.description)
+      text += row.description
+    newRow.text = text
+
+    return newRow
   }
 
 
@@ -1049,8 +1100,19 @@ export default class WFRP_Utility {
     })
   }
 
-
-
+  /*
+  * Checks that the selected advancement can be afforded by the actor
+  *
+  * @param {Integer} total: the xp total for the actor
+  * @param {Integer} spent: the spent xp plus cost
+  * @param {String} action: the action, buy or improve for example
+  * @param {String} item: the title of the skill, talent or characteristic
+  */
+  static checkValidAdvancement(total, spent, action, item) {
+    if(total - spent < 0) {
+       throw new Error(game.i18n.format("ACTOR.AdvancementError", { action: action, item: item }));
+    }
+  }
 
 
 

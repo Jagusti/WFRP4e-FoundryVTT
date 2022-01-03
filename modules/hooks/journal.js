@@ -2,19 +2,13 @@ import WFRP_Utility from "../system/utility-wfrp4e.js";
 
 export default function() {
 
-  Hooks.on("preCreateJournalEntry", (document, data, options) => {
-    if (data._id)
-      options.keepId = WFRP_Utility._keepID(data._id, document)
-  })
-
-
   Hooks.on("getJournalSheetHeaderButtons", (sheet, buttons) => {
-    if (sheet.entity.sceneNote)
+    if (sheet.document.sceneNote)
       buttons.unshift(
         {
           class: "pin",
           icon: "fas fa-map-pin",
-          onclick: async ev => sheet.entity.panToNote()
+          onclick: async ev => sheet.doocument.panToNote()
         })
   })
 
@@ -22,10 +16,10 @@ export default function() {
    * Adds tooltips to journal sheet buttons and adds listeners for pseudo entities
    */
   Hooks.on("renderJournalSheet", (obj, html, data) => {
-    $(html).find(".close").attr("title", "Close");
-    $(html).find(".entry-image").attr("title", "Image");
-    $(html).find(".entry-text").attr("title", "Text");
-    $(html).find(".share-image").attr("title", "Show Image");
+    $(html).find(".close").attr("title", game.i18n.localize("Close"));
+    $(html).find(".entry-image").attr("title", game.i18n.localize("JOURNAL.ModeImage"));
+    $(html).find(".entry-text").attr("title", game.i18n.localize("JOURNAL.ModeText"));
+    $(html).find(".share-image").attr("title", game.i18n.localize("JOURNAL.ActionShow"));
     
 
     // ---- Listen for custom entity links -----

@@ -6,7 +6,7 @@ export default class ModuleUpdater extends Dialog {
     {
 
         super({
-            title: `Update ${module.data.title} Content`,
+            title: `${game.i18n.localize("UpdaterTitle1")} ${module.data.title} ${game.i18n.localize("UpdaterTitle2")}`,
             content: html,
             module,
             buttons:
@@ -16,7 +16,7 @@ export default class ModuleUpdater extends Dialog {
                 label: game.i18n.localize("Update"),
                 callback: html => {
                     if (!game.settings.get(module.data.name, "initialized"))
-                        return ui.notifications.notify("You can only update if you've initialized this module at least once.")
+                        return ui.notifications.notify(game.i18n.localize("UPDATER.Error"))
                     let settings = this.getUpdateSettings(html)
                     this.updateImportedContent(settings)
                 }
@@ -40,6 +40,7 @@ export default class ModuleUpdater extends Dialog {
         updateSettings.journals = html.find('[name="journals"]').is(':checked')
         updateSettings.items = html.find('[name="items"]').is(':checked')
         updateSettings.scenes = html.find('[name="scenes"]').is(':checked')
+        updateSettings.tables = html.find('[name="tables"]').is(':checked')
         updateSettings.excludeNameChange = html.find('[name="excludeNameChange"]').is(':checked')
         return updateSettings
     }
@@ -53,7 +54,7 @@ export default class ModuleUpdater extends Dialog {
             if (type != "excludeNameChange" && settings[type])
                 await this.updateDocuments(documents[type], settings)
         }
-        ui.notifications.notify(`Created ${this.count.created} and updated ${this.count.updated} documents from ${this.data.module.data.name} - ${this.data.module.data.version}`)
+        ui.notifications.notify(`${game.i18n.format("UPDATER.Notification", { created: this.count.created,  updated: this.count.updated,  name: this.data.module.data.name, version: this.data.module.data.version })}`)
 
     }
 
@@ -116,18 +117,21 @@ export default class ModuleUpdater extends Dialog {
             actors : [],
             journals : [],
             items : [],
-            scenes : []
+            scenes : [],
+            tables : [],
         };
         for (let pack of packs)
         {
             let docs = await pack.getDocuments();
-            switch (pack.metadata.entity)
+            switch (pack.metadata.type)
             {
                 case "Actor": documents.actors = documents.actors.concat(docs)
                     break;
                 case "JournalEntry": documents.journals = documents.journals.concat(docs)
                     break;
                 case "Item": documents.items = documents.items.concat(docs)
+                    break;
+                case "RollTable": documents.tables = documents.tables.concat(docs)
                     break;
                 case "Scene": documents.scenes = documents.scenes.concat(docs)
                     break;

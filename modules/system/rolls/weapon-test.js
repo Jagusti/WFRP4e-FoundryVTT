@@ -53,11 +53,11 @@ export default class WeaponTest extends TestWFRP {
       this.preData.roll = this.options.offhandReverse
 
     await super.roll()
-    this.rollWeaponTest();
+    await this.rollWeaponTest();
     this.postTest();
   }
 
-  rollWeaponTest() {
+  async rollWeaponTest() {
     let weapon = this.item;
 
     if (this.result.outcome == "failure") {
@@ -75,7 +75,7 @@ export default class WeaponTest extends TestWFRP {
       }
       if (weapon.properties.flaws.unreliable)
         this.result.SL--;
-      if (weapon.properties.qualities.pratical)
+      if (weapon.properties.qualities.practical)
         this.result.SL++;
 
       if (weapon.weaponGroup.value == "throwing")
@@ -94,13 +94,13 @@ export default class WeaponTest extends TestWFRP {
         this.result.critical = game.i18n.localize("Critical")
     }
 
-    this._calculateDamage()
+    await this._calculateDamage()
 
 
     return this.result;
   }
 
-  _calculateDamage() {
+  async _calculateDamage() {
     let weapon = this.weapon
     this.result.additionalDamage = this.preData.additionalDamage || 0
 
@@ -131,7 +131,7 @@ export default class WeaponTest extends TestWFRP {
     }
 
     if (weapon.damage.dice && !this.result.additionalDamage) {
-      let roll = new Roll(weapon.damage.dice).roll()
+      let roll = await new Roll(weapon.damage.dice).roll()
       this.result.diceDamage = { value: roll.total, formula: roll.formula };
       this.preData.diceDamage = this.result.diceDamage
       this.result.additionalDamage += roll.total;
@@ -150,7 +150,25 @@ export default class WeaponTest extends TestWFRP {
       }
     }
     //@/HOUSE
+  }
 
+  postTest() {
+    super.postTest()
+    let target = this.targets[0];
+    if (target) {
+      let impenetrable = false
+      let AP = target.status.armour[this.result.hitloc.result]
+      for(let layer of AP.layers)
+      {
+        if (layer.impenetrable)
+          impenetrable = true;
+      }
+      if (impenetrable && this.result.roll % 2 != 0)
+      {
+        delete this.result.critical
+        this.result.nullcritical = `${game.i18n.localize("CHAT.CriticalsNullified")} (${game.i18n.localize("PROPERTY.Impenetrable")})`
+      }
+    }
   }
 
   get weapon() {
