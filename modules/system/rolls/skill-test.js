@@ -7,6 +7,7 @@ export default class SkillTest extends TestWFRP {
     if (!data)
       return
     this.data.preData.options.characteristicToUse = data.characteristicToUse
+    this.data.preData.options.assess = data.assess
     this.computeTargetNumber();
   }
 

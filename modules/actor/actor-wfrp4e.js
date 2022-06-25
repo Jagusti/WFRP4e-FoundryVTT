@@ -583,6 +583,7 @@ export default class ActorWfrp4e extends Actor {
       cardOptions.rollMode = testData.options.rollMode || rollMode
       testData.rollMode = cardOptions.rollMode
       testData.cardOptions = cardOptions;
+      testData.assess = testData.options.assess || testData.assess
       return new testData.rollClass(testData)
     }
     reject()
@@ -709,6 +710,7 @@ export default class ActorWfrp4e extends Actor {
 
       data: {
         hitLocation: testData.hitLocation,
+        assess: options.assess,
         advantage: this.status.advantage.value || 0,
         talents: this.getTalentTests(),
         characteristicToUse: skill.characteristic.key,
@@ -726,6 +728,7 @@ export default class ActorWfrp4e extends Actor {
         testData.slBonus = Number(html.find('[name="slBonus"]').val());
         testData.characteristicToUse = html.find('[name="characteristicToUse"]').val();
         testData.hitLocation = html.find('[name="hitLocation"]').is(':checked');
+        testData.assess = html.find('[name="assess"]').is(':checked');
         testData.cardOptions = cardOptions;
         return new testData.rollClass(testData);
       }

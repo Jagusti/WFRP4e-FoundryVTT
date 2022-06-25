@@ -1,5 +1,6 @@
 <form class="skill-test">
   {{> systems/wfrp4e/templates/dialog/dialog-constant.html}}
+  {{log data}}
 
   <div class="form-group custom-select">
     <label>{{localize "Characteristic"}}</label>
@@ -13,6 +14,10 @@
   </div>
 
   <div class="form-group">
+    <label title="{{localize 'DIALOG.Assess'}}">{{localize "ROLL.Assess"}} 
+      <input type="checkbox" name="assess" {{checked assess}} />
+    </label>
+
     <label title="{{localize 'DIALOG.HitLocation'}}">{{localize "ROLL.HitLocation"}} 
       <input type="checkbox" name="hitLocation" {{checked hitLocation}} />
     </label>

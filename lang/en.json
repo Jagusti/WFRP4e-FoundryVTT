@@ -583,6 +583,7 @@
     "DIALOG.MemorizeSpellContent" : "Memorizing this spell will cost {xp} XP.",
     "DIALOG.GainPrayer" : "Gain Miracle",
     "DIALOG.GainPrayerContent" : "Gaining this miracle will cost {xp} XP.",
+    "DIALOG.Assess" : "Assess the situation for possible advantage.",
 
     "CHAT.Quickcasting" : "Quick Casting",
     "CHAT.CareerChoose" : "Choose Your Career",
@@ -778,6 +779,7 @@
     "ROLL.Failure" : "Failure",
     "ROLL.MarginalFailure" : "Marginal Failure",
     "ROLL.SizeCausedSuccess" : "Size modifiers resulted in a success: SL becomes +0",
+    "ROLL.Assess" : "Assess",
 
     "WFRP4E.Reach.Personal" : "Personal",
     "WFRP4E.Reach.VShort" : "Very Short",
